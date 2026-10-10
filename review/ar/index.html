@@ -67,6 +67,10 @@ var COUNTRIES=['Saudi Arabia','UAE','Kuwait','Qatar','Bahrain','Oman','Other'];
 function fresh(){return {ver:VER,name:'',country:'',i:0,ans:{},t0:Date.now(),started:false,done:false}}
 var S=fresh();
 var app=document.getElementById('app'),bar=document.getElementById('bar'),barIn=document.getElementById('barIn');
+function tell(event,page){try{if(navigator.webdriver||location.protocol!=='https:')return;
+ fetch('https://wnzgbxugveigjgevygtn.supabase.co/functions/v1/teller',{method:'POST',keepalive:true,mode:'cors',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({page:'/review/ar'+(page||''),source:'direct',event:event})}).catch(function(){})}catch(e){}}
+function milestone(){var n=S.i+1;[10,20,30,40].forEach(function(m){if(n>=m&&!(S.seen||{})[m]){S.seen=S.seen||{};S.seen[m]=1;tell('visit','/q'+m)}})}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 function load(){try{var x=JSON.parse(localStorage.getItem(KEY)||'null');if(x&&x.ans&&x.ver===VER)S=x}catch(e){}}
@@ -85,16 +89,16 @@ function intro(){
  '<p class="ar mut" style="font-size:17px">شكراً لمساعدتك. ضمن مشروع «ثريا»، شاهد مقطعي فيديو قصيرين، ثم قارن الجمل الواردة فيهما، وراجع ٢٠ جملة من موقع VISHŌ. قيّم الصياغة العربية من منظور التسويق في الخليج: هل المعنى واضح؟ هل الصياغة مناسبة للسياق؟ وهل تعكس نبرة علامة تجارية خليجية قوية؟ يمكنك كتابة الصياغة الصحيحة أو إضافة تعليق بأي لغة.</p>'+
  '<div class="card"><label class="f"><span class="eb">Your first name</span><input type="text" id="nm" autocomplete="given-name" maxlength="60" value="'+esc(S.name)+'" placeholder="First name"></label>'+
  
- '<p class="note">About 30 minutes. Your answers stay on this phone while you work; you can stop and come back with the same link. At the end you send one completed link back to Yassin.</p><p class="note"><b>Tip:</b> opened this from WhatsApp? Tap ⋯ and choose <b>Open in Safari</b> (or Chrome), so your answers stay saved if you close it.</p><p class="err" id="er" hidden></p></div></div>';
+ '<p class="note">About 30 minutes. Your answers stay on this phone while you work; you can stop and come back with the same link. We only count how many people open and finish this page: no cookies, no personal data. At the end you send one completed link back to Yassin.</p><p class="note"><b>Tip:</b> opened this from WhatsApp? Tap ⋯ and choose <b>Open in Safari</b> (or Chrome), so your answers stay saved if you close it.</p><p class="err" id="er" hidden></p></div></div>';
  setBar('<button class="btn pri" id="go">'+(resume?'Continue · '+answered()+' of '+N+' done':'Start')+'</button>');
  document.getElementById('nm').oninput=function(){S.name=this.value.trim();save()};
  document.getElementById('go').onclick=function(){S.name=document.getElementById('nm').value.trim();
   if(S.name.length<2){var er=document.getElementById('er');er.textContent='Please write your first name: Yassin needs it to know whose answers these are.';er.hidden=false;return}
-  S.started=true;if(!resume)S.i=0;save();item()}}
+  if(!resume)tell('form_start');S.started=true;if(!resume)S.i=0;save();item()}}
 
 /* ---------- 2 · one text ---------- */
 function item(){
- var it=ITEMS[S.i],a=S.ans[it.id]||(S.ans[it.id]={c:'',tags:[],fix:'',note:'',ms:0}),t0=Date.now(),ch=CH[it.kind];
+ milestone();var it=ITEMS[S.i],a=S.ans[it.id]||(S.ans[it.id]={c:'',tags:[],fix:'',note:'',ms:0}),t0=Date.now(),ch=CH[it.kind];
  var part=it.kind==='web'?'Part 3 of 3 · VISHŌ website · '+it.where.replace(/^.*?· /,''):'Part '+it.part+' of 3 · '+(it.kind==='video'?'watch the video':it.where);
  function side(k){return '<div class="side'+(a.c===k?' on':'')+'"><div class="lab"><span class="eb">Version '+k+'</span></div><div class="txt ar">'+esc(it[k])+'</div></div>'}
  var body='';
@@ -133,7 +137,7 @@ function pack(){var raw=new TextEncoder().encode(JSON.stringify(packJSON()));
  if(window.CompressionStream){return new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer().then(function(b){return 'z'+b64u(new Uint8Array(b))})}
  return Promise.resolve('j'+b64u(raw))}
 function unpack(s){var u=unb64u(s.slice(1));if(s[0]==='z')return new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text().then(JSON.parse);return Promise.resolve(JSON.parse(new TextDecoder().decode(u)))}
-function finish(){S.done=true;save();
+function finish(){if(!S.sent){S.sent=1;tell('form_sent')}S.done=true;save();
  var n=answered(),fx=0,cm=0;ITEMS.forEach(function(it){var a=S.ans[it.id]||{};if(a.fix)fx++;if(a.note)cm++});
  pack().then(function(code){
   var url=location.origin+location.pathname+'#done='+code,msg='Soraya Arabic review completed by '+S.name+' ('+n+'/'+N+'): '+url;
@@ -144,7 +148,7 @@ function finish(){S.done=true;save();
   '<button class="o" id="dl" style="width:100%">Download as file (backup)</button><p class="note" id="st"></p></div>'+
   '<button class="btn" id="ed" style="width:100%">Change my answers</button><button class="btn" id="nw" style="width:100%">New review (another person on this phone)</button></div>';
   setBar('');
-  document.getElementById('sh').onclick=function(){if(navigator.share){navigator.share({title:'Soraya Arabic review · '+S.name,text:msg}).catch(function(){})}else{location.href='https://wa.me/?text='+encodeURIComponent(msg)}};
+  document.getElementById('sh').onclick=function(){tell('wa');if(navigator.share){navigator.share({title:'Soraya Arabic review · '+S.name,text:msg}).catch(function(){})}else{location.href='https://wa.me/?text='+encodeURIComponent(msg)}};
   document.getElementById('cp').onclick=function(){var st=document.getElementById('st');(navigator.clipboard?navigator.clipboard.writeText(url):Promise.reject()).then(function(){st.textContent='Copied. Paste it in your chat with Yassin.'},function(){st.textContent='Press and hold the link above, then copy it.'})};
   document.getElementById('dl').onclick=function(){var b=new Blob([JSON.stringify(packJSON(),null,1)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='soraya-arabic-review-'+S.name.replace(/[^\w؀-ۿ]+/g,'-')+'.json';a.click()};
   document.getElementById('ed').onclick=function(){S.done=false;S.i=0;save();item();scrollTo(0,0)};
@@ -159,7 +163,7 @@ function viewDone(code){setBar('');app.innerHTML=top('',1)+'<p class="mut">Readi
  function(){app.innerHTML=top('',1)+'<div class="card"><p class="err">This link looks incomplete. Ask the reviewer to copy it again.</p></div>'})}
 
 var h=location.hash.match(/#done=([zj][\w-]+)/);
-if(h){viewDone(h[1])}else{load();if(S.done)finish();else if(S.started&&answered()>0&&S.i<N)item();else intro()}
+if(h){viewDone(h[1])}else{tell('visit');load();if(S.done)finish();else if(S.started&&answered()>0&&S.i<N)item();else intro()}
 })();
 </script>
 </body>
