@@ -1,0 +1,15 @@
+# visho.studio
+# Search engines and AI answer engines are welcome (Google, Bing/Copilot, ChatGPT, Claude, Perplexity, Apple).
+# Bulk data collectors below are refused: VISHŌ expressly reserves text-and-data mining of this site for them
+# under art. 4(3) Directive (EU) 2019/790 and art. XI.190, 20° Belgian Code of Economic Law.
+
+User-agent: *
+Allow: /
+
+User-agent: CCBot
+User-agent: Bytespider
+User-agent: meta-externalagent
+User-agent: Amazonbot
+User-agent: cohere-training-data-crawler
+User-agent: cohere-ai
+Disallow: /
